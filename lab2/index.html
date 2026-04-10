@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 2 - 照相亭</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Noto+Sans+TC:wght@400;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffd6e8;
+            --text-main: #9d3b62;
+            --card-bg: rgba(255, 255, 255, 0.65);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            background-image: linear-gradient(135deg, #ffd6e8 0%, #ffe4e1 100%);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 泡泡動畫特效 */
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 182, 193, 0.1));
+            border-radius: 50%;
+            box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.8), 0 10px 20px rgba(255, 105, 180, 0.1);
+            animation: float 8s infinite ease-in-out;
+            z-index: 0;
+            backdrop-filter: blur(2px);
+        }
+
+        .bubble:nth-child(1) {
+            width: 120px;
+            height: 120px;
+            left: 10%;
+            animation-duration: 8s;
+            top: 75%;
+        }
+
+        .bubble:nth-child(2) {
+            width: 80px;
+            height: 80px;
+            left: 80%;
+            animation-duration: 10s;
+            top: 60%;
+            animation-delay: 2s;
+        }
+
+        .bubble:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            left: 40%;
+            animation-duration: 12s;
+            top: 85%;
+            animation-delay: 4s;
+        }
+
+        .bubble:nth-child(4) {
+            width: 60px;
+            height: 60px;
+            left: 25%;
+            animation-duration: 7s;
+            top: 30%;
+            animation-delay: 1s;
+        }
+
+        .bubble:nth-child(5) {
+            width: 100px;
+            height: 100px;
+            left: 75%;
+            animation-duration: 9s;
+            top: 15%;
+            animation-delay: 3s;
+        }
+
+        .bubble:nth-child(6) {
+            width: 180px;
+            height: 180px;
+            left: 60%;
+            animation-duration: 15s;
+            top: -5%;
+            animation-delay: 0s;
+        }
+
+        .bubble:nth-child(7) {
+            width: 90px;
+            height: 90px;
+            left: 5%;
+            animation-duration: 11s;
+            top: 20%;
+            animation-delay: 5s;
+        }
+
+        .bubble:nth-child(8) {
+            width: 50px;
+            height: 50px;
+            left: 50%;
+            animation-duration: 6s;
+            top: 40%;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-40px) scale(1.05) rotate(5deg);
+            }
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 40px;
+            text-align: center;
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4), inset 0 5px 15px rgba(255, 255, 255, 1);
+            backdrop-filter: blur(15px);
+            z-index: 1;
+            position: relative;
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-top: 0;
+            color: #d13076;
+            text-shadow: 0 2px 5px rgba(255, 105, 180, 0.2), 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: #b75c82;
+            font-weight: 600;
+        }
+
+        .camera-box {
+            width: 100%;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            margin: 2rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d13076;
+            font-size: 1.2rem;
+            border: 4px dashed rgba(255, 105, 180, 0.5);
+            font-weight: 800;
+        }
+
+        .capture-btn {
+            background: radial-gradient(circle, #ff69b4, #ff1493);
+            color: white;
+            border: 4px solid white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.5);
+            position: relative;
+        }
+
+        .capture-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .capture-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 25px rgba(255, 20, 147, 0.6);
+        }
+
+        .capture-btn:active {
+            transform: scale(0.95);
+        }
+
+        .back-link {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: #d13076;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.1rem;
+            transition: transform 0.3s;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 10px rgba(255, 182, 193, 0.3);
+            border: 2px solid white;
+        }
+
+        .back-link:hover {
+            transform: translateX(-5px);
+            background: white;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 漂浮泡泡背景 -->
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+
+    <a href="../index.html" class="back-link">← 返回主頁</a>
+    <div class="container">
+        <h1>照相亭 📸</h1>
+        <p>允許取用相機以開始體驗趣味濾鏡！</p>
+        <div class="camera-box">
+            相機預覽畫面區域
+        </div>
+        <button class="capture-btn" title="拍照"></button>
+    </div>
+</body>
+
+</html>
