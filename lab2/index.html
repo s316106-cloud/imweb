@@ -126,11 +126,11 @@
 
         .container {
             background: var(--card-bg);
-            padding: 3rem;
+            padding: 2.5rem;
             border-radius: 40px;
             text-align: center;
             border: 3px solid rgba(255, 255, 255, 0.9);
-            max-width: 600px;
+            max-width: 850px;
             width: 90%;
             box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4), inset 0 5px 15px rgba(255, 255, 255, 1);
             backdrop-filter: blur(15px);
@@ -154,51 +154,172 @@
 
         .camera-box {
             width: 100%;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.5);
+            height: 500px;
+            background: rgba(0, 0, 0, 0.8);
             border-radius: 20px;
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #d13076;
             font-size: 1.2rem;
-            border: 4px dashed rgba(255, 105, 180, 0.5);
+            border: 4px solid rgba(255, 105, 180, 0.5);
             font-weight: 800;
-        }
-
-        .capture-btn {
-            background: radial-gradient(circle, #ff69b4, #ff1493);
-            color: white;
-            border: 4px solid white;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.5);
             position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
         }
 
-        .capture-btn::after {
-            content: '';
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* 鏡像翻轉，讓使用者像在照鏡子 */
+            transform: scaleX(-1);
+        }
+
+        .countdown {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60%;
-            height: 60%;
-            border-radius: 50%;
-            border: 2px solid white;
+            font-size: 6rem;
+            color: white;
+            text-shadow: 0 0 20px #ff1493, 0 0 10px #ff69b4;
+            font-weight: 800;
+            z-index: 10;
+            display: none;
+            margin: 0;
+            line-height: 1;
         }
 
-        .capture-btn:hover {
-            transform: scale(1.1);
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            border: 3px solid white;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-family: inherit;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
             box-shadow: 0 10px 25px rgba(255, 20, 147, 0.6);
         }
 
-        .capture-btn:active {
-            transform: scale(0.95);
+        .action-btn:active:not(:disabled) {
+            transform: translateY(1px) scale(0.95);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .burst-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+        }
+
+        .burst-btn:hover:not(:disabled) {
+            box-shadow: 0 10px 25px rgba(142, 68, 173, 0.6);
+        }
+
+        .detect-btn {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            box-shadow: 0 5px 15px rgba(0, 176, 155, 0.4);
+        }
+
+        .detect-btn:hover:not(:disabled) {
+            box-shadow: 0 10px 25px rgba(0, 176, 155, 0.6);
+        }
+
+        .strip-btn {
+            background: linear-gradient(135deg, #f39c12, #d35400);
+            box-shadow: 0 5px 15px rgba(211, 84, 0, 0.4);
+        }
+
+        .strip-btn:hover:not(:disabled) {
+            box-shadow: 0 10px 25px rgba(211, 84, 0, 0.6);
+        }
+
+        .filter-controls {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .filter-select {
+            padding: 8px 15px;
+            font-size: 1.1rem;
+            border: 2px solid #ff69b4;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #d13076;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 3px 10px rgba(255, 105, 180, 0.2);
+            transition: all 0.3s;
+            font-weight: 700;
+        }
+
+        .filter-select:hover {
+            border-color: #ff1493;
+            box-shadow: 0 5px 15px rgba(255, 20, 147, 0.4);
+        }
+
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .gallery img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.3s;
+        }
+        
+        .gallery img:hover {
+            transform: scale(1.1) rotate(3deg);
+            z-index: 2;
+        }
+
+        @keyframes countdownPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
         }
 
         .back-link {
@@ -257,10 +378,228 @@
         <h1>照相亭 📸</h1>
         <p>允許取用相機以開始體驗趣味濾鏡！</p>
         <div class="camera-box">
-            相機預覽畫面區域
+            <video id="video" autoplay playsinline></video>
+            <div id="countdown" class="countdown"></div>
         </div>
-        <button class="capture-btn" title="拍照"></button>
+        <div class="filter-controls">
+            <label for="filter-select" style="font-weight: 800; color: #d13076; font-size: 1.1rem;">✨ 濾鏡特效：</label>
+            <select id="filter-select" class="filter-select">
+                <option value="none">正常 (Normal)</option>
+                <option value="grayscale(100%)">黑白 (Grayscale)</option>
+                <option value="sepia(100%)">復古 (Sepia)</option>
+                <option value="invert(100%)">負片 (Invert)</option>
+                <option value="hue-rotate(90deg)">迷幻 (Alien)</option>
+                <option value="contrast(150%) saturate(150%)">鮮豔 (Vivid)</option>
+                <option value="blur(4px)">朦朧 (Blur)</option>
+            </select>
+        </div>
+        <div class="controls">
+            <button id="btn-detect" class="action-btn detect-btn">開啟鏡頭 👁️</button>
+            <button id="btn-snap" class="action-btn" disabled>立即開拍 📸</button>
+            <button id="btn-burst" class="action-btn burst-btn" disabled>連拍 3 張 ⏱️</button>
+            <button id="btn-strip" class="action-btn strip-btn" disabled>拍貼機 (下載) 🎞️</button>
+        </div>
+        <div id="gallery" class="gallery"></div>
+        <canvas id="canvas" style="display: none;"></canvas>
     </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const gallery = document.getElementById('gallery');
+        const btnSnap = document.getElementById('btn-snap');
+        const btnBurst = document.getElementById('btn-burst');
+        const btnStrip = document.getElementById('btn-strip');
+        const btnDetect = document.getElementById('btn-detect');
+        const countdownEl = document.getElementById('countdown');
+        const filterSelect = document.getElementById('filter-select');
+        let currentFilter = 'none';
+
+        // 監聽濾鏡選擇
+        filterSelect.addEventListener('change', (e) => {
+            currentFilter = e.target.value;
+            video.style.filter = currentFilter;
+        });
+        
+        // 取得相機權限與影片串流
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = stream;
+                
+                // 成功後啟用拍照按鈕
+                btnSnap.disabled = false;
+                btnBurst.disabled = false;
+                btnStrip.disabled = false;
+                btnDetect.textContent = "鏡頭已開啟 ✅";
+                btnDetect.disabled = true;
+            } catch (err) {
+                console.error("無法存取相機:", err);
+                alert("請允許存取相機才能使用照相亭喔！");
+            }
+        }
+
+        // 點擊按鈕後啟動相機
+        btnDetect.addEventListener('click', startCamera);
+
+        // 拍照功能
+        function takePhoto() {
+            // 閃光特效
+            const flash = document.createElement('div');
+            flash.style.position = 'absolute';
+            flash.style.top = '0';
+            flash.style.left = '0';
+            flash.style.width = '100%';
+            flash.style.height = '100%';
+            flash.style.background = 'white';
+            flash.style.opacity = '1';
+            flash.style.zIndex = '100';
+            flash.style.transition = 'opacity 0.3s ease';
+            flash.style.borderRadius = '16px';
+            document.querySelector('.camera-box').appendChild(flash);
+            
+            let dataUrl = '';
+            
+            // 確保影片已經準備好
+            if (video.videoWidth) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // 為了讓拍出來的照片跟預覽一樣是鏡像，我們在畫到 canvas 前先翻轉 ctx
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                
+                // 套用選擇的濾鏡
+                ctx.filter = currentFilter;
+                
+                // 將影片當前畫面畫到 canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 恢復 ctx 狀態與濾鏡
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.filter = 'none';
+                
+                // 將 canvas 轉成圖片 URL
+                dataUrl = canvas.toDataURL('image/png');
+                
+                // 建立 img 元素並加入畫廊
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                gallery.prepend(img); // 加到最前面
+            }
+
+            // 移除閃光特效
+            setTimeout(() => { flash.style.opacity = '0'; }, 50);
+            setTimeout(() => { flash.remove(); }, 350);
+            
+            return dataUrl;
+        }
+
+        // 立即開拍按鈕
+        btnSnap.addEventListener('click', () => {
+            takePhoto();
+        });
+
+        // 延遲工具函數
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 連拍 3 張按鈕
+        btnBurst.addEventListener('click', async () => {
+            // 禁用按鈕，避免重複點擊
+            btnSnap.disabled = true;
+            btnBurst.disabled = true;
+            btnStrip.disabled = true;
+            
+            for (let i = 0; i < 3; i++) {
+                // 倒數 3 秒
+                countdownEl.style.display = 'block';
+                for (let c = 3; c > 0; c--) {
+                    countdownEl.textContent = c;
+                    // 重置動畫以再次觸發
+                    countdownEl.style.animation = 'none';
+                    void countdownEl.offsetWidth; // 觸發 reflow
+                    countdownEl.style.animation = 'countdownPop 0.5s ease-out forwards';
+                    
+                    await sleep(1000);
+                }
+                
+                // 隱藏倒數並拍照
+                countdownEl.style.display = 'none';
+                takePhoto();
+                
+                // 如果還沒拍完，稍微等待一下再開始下一次倒數
+                if (i < 2) {
+                    await sleep(1000);
+                }
+            }
+            
+            // 恢復按鈕
+            btnSnap.disabled = false;
+            btnBurst.disabled = false;
+            btnStrip.disabled = false;
+        });
+
+        // 拍貼機模式 (下載最近的三張照片)
+        btnStrip.addEventListener('click', async () => {
+            const imgs = gallery.querySelectorAll('img');
+            
+            if (imgs.length < 3) {
+                alert("請先拍攝至少 3 張照片才能製作拍貼機長條圖喔！");
+                return;
+            }
+
+            btnSnap.disabled = true;
+            btnBurst.disabled = true;
+            btnStrip.disabled = true;
+            
+            // 取相片庫中最新拍的 3 張
+            // 因為我們拍照是用 prepend (插在最前面)，所以 imgs[0] 是最新拍的，imgs[2] 是最早拍的。
+            // 為了讓拍貼機長條圖由上到下是依照時間順序 (最早在上面)，我們反轉順序取出：
+            const capturedImages = [imgs[2].src, imgs[1].src, imgs[0].src];
+            
+            const stripCanvas = document.createElement('canvas');
+            const stripCtx = stripCanvas.getContext('2d');
+            
+            const padding = 30; // 邊框大小
+            
+            // 從第一張圖取得寬高
+            const imgObj = new Image();
+            imgObj.src = capturedImages[0];
+            await new Promise(r => imgObj.onload = r);
+            
+            const imgWidth = imgObj.width;
+            const imgHeight = imgObj.height;
+            
+            // 拍貼機畫布尺寸 (加上邊框空間)
+            stripCanvas.width = imgWidth + padding * 2;
+            stripCanvas.height = (imgHeight * 3) + (padding * 4); // 上、中1、中2、下
+            
+            // 填滿白色背景
+            stripCtx.fillStyle = '#ffffff';
+            stripCtx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+            
+            // 依序繪製三張照片
+            for(let i=0; i<3; i++) {
+                const img = new Image();
+                img.src = capturedImages[i];
+                await new Promise(r => img.onload = r);
+                const y = padding + i * (imgHeight + padding);
+                stripCtx.drawImage(img, padding, y, imgWidth, imgHeight);
+            }
+            
+            // 觸發下載
+            const link = document.createElement('a');
+            link.download = `photobooth-strip-${Date.now()}.png`;
+            link.href = stripCanvas.toDataURL('image/png');
+            link.click();
+            
+            // 恢復按鈕
+            btnSnap.disabled = false;
+            btnBurst.disabled = false;
+            btnStrip.disabled = false;
+        });
+    </script>
 </body>
 
 </html>
