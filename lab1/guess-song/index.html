@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜歌達人 - Guess the Song</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app" class="container glass-panel">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active fade-in">
+            <div class="icon-pulse">🎵</div>
+            <h1 class="title">猜歌達人</h1>
+            <p class="subtitle">考驗你的華語流行音樂知識！<br>聽前奏，選出正確的歌曲。</p>
+            <button id="start-btn" class="primary-btn">準備開始</button>
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>正在載入百大熱門歌曲...</p>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen hidden">
+            <div class="header">
+                <div class="round-badge" id="round-info">回合 1/10</div>
+                <div class="score-badge">得分 <span id="score-info">0</span></div>
+            </div>
+            
+            <div class="player-container">
+                <div class="audio-visualizer">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <h2 class="question-text">這首是哪首歌？</h2>
+                
+                <div class="audio-controls">
+                    <button id="btn-play-start" class="control-btn primary">開始 (0-15s)</button>
+                    <button id="btn-play-more" class="control-btn" disabled>再聽15秒</button>
+                    <button id="btn-replay" class="control-btn" disabled>再聽一遍</button>
+                </div>
+            </div>
+
+            
+            <div id="options" class="options-grid">
+                <!-- Option buttons injected by JS -->
+            </div>
+            
+            <div class="progress-container">
+                <div id="time-progress" class="progress-bar"></div>
+            </div>
+            <div id="feedback" class="feedback"></div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen hidden fade-in">
+            <div class="icon-pulse">🏆</div>
+            <h1 class="title">遊戲結束！</h1>
+            <div class="final-score-container">
+                <p>你的最終得分</p>
+                <h2 id="final-score">0</h2>
+            </div>
+            <p id="evaluation-message" class="evaluation"></p>
+            <button id="restart-btn" class="primary-btn">再挑戰一次</button>
+        </div>
+    </div>
+
+    <!-- Audio Element -->
+    <audio id="audio-player"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>

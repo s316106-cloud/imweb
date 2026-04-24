@@ -210,6 +210,94 @@
                 transform: scale(1);
             }
         }
+
+        /* 遊戲新增樣式 */
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid #ff69b4;
+            color: #d13076;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .control-btn.primary {
+            background: #ff69b4;
+            color: white;
+        }
+
+        .control-btn:hover:not(:disabled) {
+            background: #ff1493;
+            color: white;
+            border-color: #ff1493;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #ccc;
+            color: #999;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #ffb6c1;
+            padding: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            color: #9d3b62;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: #fff0f5;
+            transform: translateY(-2px);
+            border-color: #ff69b4;
+        }
+
+        .option-btn.correct {
+            background: #e6ffe6;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .option-btn.wrong {
+            background: #ffe6e6;
+            border-color: #f44336;
+            color: #c62828;
+            opacity: 0.7;
+        }
+
+        .song-name {
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .artist-name {
+            font-size: 0.9rem;
+            color: #b75c82;
+        }
     </style>
 </head>
 
@@ -225,11 +313,48 @@
     <div class="bubble"></div>
 
     <a href="../index.html" class="back-link">← 返回主頁</a>
-    <div class="container">
+    
+    <!-- 開始畫面 -->
+    <div class="container" id="start-screen">
         <h1>猜歌遊戲 🎵</h1>
         <p>聽一段旋律，猜猜看是哪首經典名曲！</p>
-        <button class="play-btn">準備開始</button>
+        <button class="play-btn" id="start-btn">準備開始</button>
+        <p id="loading" style="display: none; color: #d13076; margin-top: 1rem; font-weight: bold;">正在載入歌曲，請稍候...</p>
     </div>
+
+    <!-- 遊戲畫面 -->
+    <div class="container" id="game-screen" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: #d13076; font-weight: 800;">
+            <span id="round-info">回合 1/10</span>
+            <span>得分 <span id="score-info">0</span></span>
+        </div>
+        
+        <h2 style="color: #9d3b62; margin-bottom: 1rem;">這首是哪首歌？</h2>
+        
+        <div class="audio-controls">
+            <button id="btn-play-start" class="control-btn primary">開始聽 (0-15s)</button>
+            <button id="btn-play-more" class="control-btn" disabled>再聽 15 秒</button>
+            <button id="btn-replay" class="control-btn" disabled>再聽一遍</button>
+        </div>
+        
+        <div id="options" class="options-grid">
+            <!-- 按鈕將由 JS 生成 -->
+        </div>
+        
+        <div id="feedback" style="min-height: 24px; font-weight: bold; margin-top: 1rem;"></div>
+    </div>
+
+    <!-- 結束畫面 -->
+    <div class="container" id="end-screen" style="display: none;">
+        <h1>遊戲結束！</h1>
+        <p style="font-size: 1.2rem; color: #9d3b62;">你的最終得分</p>
+        <h2 id="final-score" style="font-size: 3rem; color: #d13076; margin: 1rem 0;">0</h2>
+        <button class="play-btn" id="restart-btn">再挑戰一次</button>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script src="game.js"></script>
 </body>
 
 </html>
