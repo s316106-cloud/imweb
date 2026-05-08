@@ -17,7 +17,7 @@ const evaluationMsg = document.getElementById('evaluation-message');
 
 const btnPlayStart = document.getElementById('btn-play-start');
 const btnPlayMore = document.getElementById('btn-play-more');
-const btnReplay = document.getElementById('btn-replay');
+const btnSkip = document.getElementById('btn-skip');
 
 let allSongs = [];
 let currentRound = 1;
@@ -43,7 +43,7 @@ restartBtn.addEventListener('click', () => {
 btnPlayStart.addEventListener('click', () => {
     btnPlayStart.disabled = true;
     btnPlayMore.disabled = false;
-    btnReplay.disabled = false;
+    btnSkip.disabled = false;
     roundStartTime = Date.now();
     playAudioSegment(0, 15);
 });
@@ -53,9 +53,28 @@ btnPlayMore.addEventListener('click', () => {
     playAudioSegment(15, 30);
 });
 
-btnReplay.addEventListener('click', () => {
-    const end = btnPlayMore.disabled ? 30 : 15;
-    playAudioSegment(0, end);
+btnSkip.addEventListener('click', () => {
+    if (!roundActive) return;
+    roundActive = false;
+    
+    clearInterval(progressInterval);
+    visualizer.classList.remove('playing');
+    audioPlayer.pause();
+    
+    const allBtns = document.querySelectorAll('.option-btn');
+    allBtns.forEach(btn => btn.disabled = true);
+    
+    feedback.textContent = '已跳過此題';
+    feedback.classList.add('show');
+    
+    // Highlight correct answer
+    allBtns.forEach(btn => {
+        if (btn.querySelector('.song-name').textContent === correctSong.trackName) {
+            btn.classList.add('correct');
+        }
+    });
+    
+    setTimeout(nextRound, 2000);
 });
 
 async function fetchSongs() {
@@ -123,7 +142,7 @@ function startRound() {
     audioPlayer.src = correctSong.previewUrl;
     btnPlayStart.disabled = false;
     btnPlayMore.disabled = true;
-    btnReplay.disabled = true;
+    btnSkip.disabled = true;
     timeProgress.style.transform = `scaleX(1)`;
 }
 

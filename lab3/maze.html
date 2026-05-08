@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 3 - 記憶微光迷宮</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Noto+Sans+TC:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="maze.css">
+</head>
+
+<body>
+    <!-- 漂浮泡泡背景 -->
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+
+    <a href="index.html" class="back-link">← 返回前一個遊戲 (戳泡泡)</a>
+    
+    <!-- 開始畫面 -->
+    <div class="container" id="start-screen">
+        <h1>記憶微光迷宮 ✨</h1>
+        <p>歡迎來到未知的領域。<br>牆壁預設是隱形的，只有當你「撞到牆」時，牆壁才會短暫發出微光。<br>請靠著你的記憶力，使用鍵盤的 <strong>上下左右鍵</strong> 找到通往右下角的出口！</p>
+        <button class="play-btn" id="start-btn">開始探險</button>
+    </div>
+
+    <!-- 遊戲畫面 -->
+    <div class="container hidden" id="game-screen">
+        <h2 style="color: #d13076; margin-top: 0; margin-bottom: 1rem;">找出出口！</h2>
+        <div id="maze-container">
+            <!-- 迷宮網格將由 JS 生成 -->
+        </div>
+        <p style="margin-top: 1rem; margin-bottom: 0; font-size: 1rem;">使用方向鍵 ⬆️⬇️⬅️➡️ 移動</p>
+    </div>
+
+    <!-- 結束畫面 -->
+    <div class="container hidden" id="end-screen">
+        <h1>恭喜通關！ 🎉</h1>
+        <p>你成功憑著記憶力走出了微光迷宮！</p>
+        <div style="font-size: 1.5rem; color: #ff1493; font-weight: bold; margin: 1.5rem 0;">
+            總共撞牆次數：<span id="bump-count">0</span> 次
+        </div>
+        <button class="play-btn" id="restart-btn">再挑戰一次</button>
+    </div>
+
+    <script src="maze.js"></script>
+    <script>
+        // 背景泡泡
+        document.querySelectorAll('.bubble').forEach(bubble => {
+            const size = Math.random() * 100 + 40;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * 100}%`;
+            bubble.style.top = `${Math.random() * 100}%`;
+            bubble.style.animationDuration = `${Math.random() * 10 + 6}s`;
+            
+            bubble.addEventListener('click', function() {
+                this.style.opacity = '0';
+                setTimeout(() => this.remove(), 300);
+            });
+        });
+    </script>
+</body>
+
+</html>

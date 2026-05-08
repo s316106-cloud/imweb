@@ -14,7 +14,7 @@ const finalScoreEl = document.getElementById('final-score');
 
 const btnPlayStart = document.getElementById('btn-play-start');
 const btnPlayMore = document.getElementById('btn-play-more');
-const btnReplay = document.getElementById('btn-replay');
+const btnSkip = document.getElementById('btn-skip');
 
 let allSongs = [];
 let currentRound = 1;
@@ -39,7 +39,7 @@ restartBtn.addEventListener('click', () => {
 btnPlayStart.addEventListener('click', () => {
     btnPlayStart.disabled = true;
     btnPlayMore.disabled = false;
-    btnReplay.disabled = false;
+    btnSkip.disabled = false;
     roundStartTime = Date.now();
     playAudioSegment(0, 15);
 });
@@ -49,9 +49,27 @@ btnPlayMore.addEventListener('click', () => {
     playAudioSegment(15, 30);
 });
 
-btnReplay.addEventListener('click', () => {
-    const end = btnPlayMore.disabled ? 30 : 15;
-    playAudioSegment(0, end);
+btnSkip.addEventListener('click', () => {
+    if (!roundActive) return;
+    roundActive = false;
+    
+    clearInterval(progressInterval);
+    audioPlayer.pause();
+    
+    const allBtns = document.querySelectorAll('.option-btn');
+    allBtns.forEach(btn => btn.disabled = true);
+    
+    feedback.textContent = '已跳過此題';
+    feedback.style.color = '#9d3b62'; // match theme text color
+    
+    // Highlight correct answer
+    allBtns.forEach(btn => {
+        if (btn.querySelector('.song-name').textContent === correctSong.trackName) {
+            btn.classList.add('correct');
+        }
+    });
+    
+    setTimeout(nextRound, 2000);
 });
 
 async function fetchSongs() {
@@ -106,7 +124,7 @@ function startRound() {
     audioPlayer.src = correctSong.previewUrl;
     btnPlayStart.disabled = false;
     btnPlayMore.disabled = true;
-    btnReplay.disabled = true;
+    btnSkip.disabled = true;
 }
 
 function getRandomSongs(count) {
@@ -171,7 +189,7 @@ function handleGuess(selectedSong, clickedBtn) {
     
     if (selectedSong.trackId === correctSong.trackId) {
         clickedBtn.classList.add('correct');
-        const points = calculateScore(timeTaken);
+        const points = 10;
         score += points;
         scoreInfo.textContent = score;
         
@@ -179,7 +197,10 @@ function handleGuess(selectedSong, clickedBtn) {
         feedback.style.color = '#2e7d32'; // Green
     } else {
         clickedBtn.classList.add('wrong');
-        feedback.textContent = '答錯了！';
+        score -= 5;
+        scoreInfo.textContent = score;
+        
+        feedback.textContent = '答錯了！ -5 分';
         feedback.style.color = '#c62828'; // Red
         
         allBtns.forEach(btn => {
@@ -193,14 +214,7 @@ function handleGuess(selectedSong, clickedBtn) {
 }
 
 function calculateScore(timeTaken) {
-    const maxScore = 1000;
-    const minScore = 100;
-    const maxTime = audioDuration;
-    
-    if (timeTaken >= maxTime) return minScore;
-    
-    const score = maxScore - ((maxScore - minScore) * (timeTaken / maxTime));
-    return Math.floor(score);
+    return 10;
 }
 
 function nextRound() {
