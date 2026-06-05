@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 04 · 手勢切水果 🍉</title>
+    <meta name="description" content="用手勢當刀子，揮手切水果，小心炸彈！MediaPipe 手部偵測互動遊戲。">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg1: #1a0533;
+            --bg2: #0d1a3a;
+            --accent: #ff69b4;
+            --neon-green: #39ff14;
+            --neon-pink: #ff2d78;
+            --neon-blue: #00cfff;
+            --neon-yellow: #ffe600;
+            --neon-orange: #ff8c00;
+            --card-bg: rgba(255, 255, 255, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background: radial-gradient(ellipse at 20% 20%, #2a0845 0%, #0d1a3a 50%, #000510 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+        }
+
+        /* ── HUD Header ── */
+        .hud {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+            backdrop-filter: blur(6px);
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 30px;
+            transition: all 0.25s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.22); transform: translateX(-3px); }
+
+        .hud-title {
+            font-size: 1.3rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #ff69b4, #a78bfa, #00cfff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+            letter-spacing: 0.05em;
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-box {
+            text-align: center;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 6px 18px;
+            min-width: 80px;
+        }
+        .stat-label { font-size: 0.65rem; color: #aaa; letter-spacing: 0.1em; text-transform: uppercase; }
+        .stat-value { font-size: 1.5rem; font-weight: 900; color: #fff; line-height: 1.1; }
+        #score-val { color: var(--neon-green); text-shadow: 0 0 12px var(--neon-green); }
+        #lives-val { color: var(--neon-pink); text-shadow: 0 0 12px var(--neon-pink); }
+        #combo-val { color: var(--neon-yellow); text-shadow: 0 0 12px var(--neon-yellow); }
+
+        /* ── Game Area ── */
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Camera feed (mirrored) */
+        #video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            opacity: 0.28;
+            filter: saturate(0.4) brightness(0.6);
+        }
+
+        /* Game canvas (fruits/bombs drawn here) */
+        #game-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+        }
+
+        /* Blade trail canvas */
+        #blade-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* ── Overlay screens ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+        }
+
+        /* Start Screen */
+        #start-screen {
+            background: radial-gradient(ellipse at center, rgba(40,0,80,0.95) 0%, rgba(10,10,30,0.98) 100%);
+        }
+
+        .welcome-title {
+            font-size: clamp(2.5rem, 7vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #ff69b4 0%, #a78bfa 50%, #00cfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4em;
+            text-align: center;
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 20px rgba(167,139,250,0.4)); }
+            50% { filter: brightness(1.2) drop-shadow(0 0 40px rgba(167,139,250,0.8)); }
+        }
+
+        .welcome-sub {
+            font-size: 1.1rem;
+            color: #c4b5fd;
+            margin-bottom: 3rem;
+            text-align: center;
+            line-height: 1.7;
+        }
+
+        .rules-grid {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .rule-card {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 1.4rem 1.8rem;
+            text-align: center;
+            min-width: 160px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, background 0.3s;
+        }
+        .rule-card:hover { transform: translateY(-6px); background: rgba(255,255,255,0.12); }
+
+        .rule-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .rule-text { font-size: 0.9rem; color: #e0d4ff; font-weight: 700; }
+
+        .start-btn {
+            font-family: inherit;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #fff;
+            background: linear-gradient(135deg, #ff2d78, #a855f7);
+            border: none;
+            border-radius: 50px;
+            padding: 18px 60px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(255,45,120,0.5), 0 4px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            letter-spacing: 0.06em;
+            position: relative;
+            overflow: hidden;
+        }
+        .start-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+            border-radius: inherit;
+        }
+        .start-btn:hover {
+            transform: scale(1.08) translateY(-3px);
+            box-shadow: 0 0 50px rgba(255,45,120,0.7), 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        /* Camera permission notice */
+        .cam-notice {
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #7c6a9a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Game Over Screen */
+        #gameover-screen {
+            background: radial-gradient(ellipse at center, rgba(80,0,20,0.95) 0%, rgba(10,10,30,0.98) 100%);
+            display: none;
+        }
+
+        #gameover-screen.show { display: flex; }
+
+        .gameover-title {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 900;
+            color: #ff2d78;
+            text-shadow: 0 0 40px rgba(255,45,120,0.8);
+            margin-bottom: 0.3em;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-15px); }
+            75% { transform: translateX(15px); }
+        }
+
+        .final-score {
+            font-size: 1.3rem;
+            color: #c4b5fd;
+            margin-bottom: 0.5em;
+        }
+        .final-score span {
+            color: var(--neon-green);
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .play-again-btn {
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fff;
+            background: linear-gradient(135deg, #39ff14, #00b4d8);
+            border: none;
+            border-radius: 50px;
+            padding: 16px 50px;
+            cursor: pointer;
+            margin-top: 2rem;
+            box-shadow: 0 0 25px rgba(57,255,20,0.5);
+            transition: all 0.3s;
+            letter-spacing: 0.05em;
+        }
+        .play-again-btn:hover { transform: scale(1.08); box-shadow: 0 0 45px rgba(57,255,20,0.7); }
+
+        /* ── Score pop-up texts ── */
+        .score-popup {
+            position: fixed;
+            z-index: 150;
+            font-size: 2.2rem;
+            font-weight: 900;
+            pointer-events: none;
+            animation: scoreFloat 1.1s ease-out forwards;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        @keyframes scoreFloat {
+            0%   { opacity: 1; transform: translateY(0) scale(1); }
+            60%  { opacity: 1; transform: translateY(-50px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-90px) scale(0.8); }
+        }
+
+        /* ── Combo banner ── */
+        #combo-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            z-index: 160;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 40px var(--neon-yellow), 0 0 80px rgba(255,230,0,0.5);
+            pointer-events: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            opacity: 0;
+        }
+        #combo-banner.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* ── Live indicator ── */
+        .lives-display {
+            display: flex;
+            gap: 4px;
+            font-size: 1.2rem;
+        }
+
+        /* ── Camera status ── */
+        #cam-status {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+            backdrop-filter: blur(10px);
+            transition: opacity 0.5s;
+        }
+
+        #cam-status.hidden { opacity: 0; pointer-events: none; }
+
+        /* Stars background */
+        .star {
+            position: fixed;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle var(--dur) infinite var(--delay);
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: var(--brightness); transform: scale(1); }
+        }
+
+        /* ── Debug skeleton canvas ── */
+        #skeleton-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 15;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HUD -->
+<div class="hud">
+    <a href="../index.html" class="back-btn">← 返回</a>
+    <div class="hud-title">🍉 手勢切水果</div>
+    <div class="hud-stats">
+        <div class="stat-box">
+            <div class="stat-label">分數</div>
+            <div class="stat-value" id="score-val">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">連擊</div>
+            <div class="stat-value" id="combo-val">x1</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">💣 炸彈</div>
+            <div class="stat-value" id="lives-val">0 / 3</div>
+        </div>
+    </div>
+</div>
+
+<!-- Game Wrapper -->
+<div id="game-wrapper">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="game-canvas"></canvas>
+    <canvas id="skeleton-canvas"></canvas>
+    <canvas id="blade-canvas"></canvas>
+</div>
+
+<!-- Combo Banner -->
+<div id="combo-banner"></div>
+
+<!-- Camera Status -->
+<div id="cam-status">📷 正在啟動鏡頭…</div>
+
+<!-- ── START SCREEN ── -->
+<div class="overlay" id="start-screen">
+    <h1 class="welcome-title">🍉 手勢切水果</h1>
+    <p class="welcome-sub">用你的手當刀子<br>揮過水果就能切開，但別碰到炸彈！</p>
+
+    <div class="rules-grid">
+        <div class="rule-card">
+            <div class="rule-icon">✋</div>
+            <div class="rule-text">舉起手<br>啟動刀刃</div>
+        </div>
+        <div class="rule-card">
+            <div class="rule-icon">🍎</div>
+            <div class="rule-text">揮手切水果<br>+10 分</div>
+        </div>
+        <div class="rule-card">
+            <div class="rule-icon">💣</div>
+            <div class="rule-text">切到炸彈<br>-10 分，第 3 顆結束！</div>
+        </div>
+        <div class="rule-card">
+            <div class="rule-icon">🔥</div>
+            <div class="rule-text">連續切水果<br>每顆再 +5 獎勵！</div>
+        </div>
+    </div>
+
+    <button class="start-btn" id="start-btn">🎮 開始遊戲</button>
+    <p class="cam-notice">🔒 需要鏡頭權限 · 影像僅在本機處理，不會上傳</p>
+</div>
+
+<!-- ── GAME OVER SCREEN ── -->
+<div class="overlay" id="gameover-screen">
+    <div class="gameover-title">遊戲結束 💀</div>
+    <p class="final-score">最終得分：<span id="final-score-val">0</span></p>
+    <p class="final-score">最高連擊：<span id="final-combo-val" style="color:var(--neon-yellow);text-shadow:0 0 20px var(--neon-yellow);">0</span></p>
+    <button class="play-again-btn" id="play-again-btn">🔄 再玩一次</button>
+    <a href="../index.html" style="margin-top:1rem;color:#7c6a9a;font-size:0.9rem;text-decoration:none;">← 返回作品集</a>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STAR BACKGROUND
+// ═══════════════════════════════════════════════════════
+(function createStars() {
+    for (let i = 0; i < 80; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const sz = Math.random() * 2.5 + 0.5;
+        s.style.cssText = `
+            width:${sz}px; height:${sz}px;
+            left:${Math.random()*100}%; top:${Math.random()*100}%;
+            --dur:${(Math.random()*4+2).toFixed(1)}s;
+            --delay:${(Math.random()*5).toFixed(1)}s;
+            --brightness:${(Math.random()*0.5+0.3).toFixed(2)};
+        `;
+        document.body.appendChild(s);
+    }
+})();
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+const state = {
+    running: false,
+    score: 0,
+    lives: 3,
+    combo: 1,
+    maxCombo: 1,
+    comboTimer: null,
+    lastSliceTime: 0,
+    items: [],        // fruits & bombs
+    spawnTimer: null,
+    frameId: null,
+    handX: -1,
+    handY: -1,
+    prevHandX: -1,
+    prevHandY: -1,
+    bladeTrail: [],   // [{x,y,t}]
+    handVisible: false,
+    bombsHit: 0,      // 切到的炸彈數，達 3 結束
+    fruitStreak: 0,   // 連續切水果計數（中斷即歸零）
+};
+
+// ═══════════════════════════════════════════════════════
+//  DOM REFS
+// ═══════════════════════════════════════════════════════
+const video          = document.getElementById('video');
+const gameCanvas     = document.getElementById('game-canvas');
+const bladeCanvas    = document.getElementById('blade-canvas');
+const skeletonCanvas = document.getElementById('skeleton-canvas');
+const gCtx           = gameCanvas.getContext('2d');
+const bCtx           = bladeCanvas.getContext('2d');
+const sCtx           = skeletonCanvas.getContext('2d');
+const scoreEl        = document.getElementById('score-val');
+const livesEl        = document.getElementById('lives-val');
+const comboEl        = document.getElementById('combo-val');
+const comboBanner    = document.getElementById('combo-banner');
+const camStatus      = document.getElementById('cam-status');
+const startScreen    = document.getElementById('start-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const finalScoreEl   = document.getElementById('final-score-val');
+const finalComboEl   = document.getElementById('final-combo-val');
+
+// ═══════════════════════════════════════════════════════
+//  RESIZE CANVASES
+// ═══════════════════════════════════════════════════════
+function resizeCanvases() {
+    const w = window.innerWidth, h = window.innerHeight;
+    [gameCanvas, bladeCanvas, skeletonCanvas].forEach(c => {
+        c.width = w; c.height = h;
+    });
+}
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
+
+// ═══════════════════════════════════════════════════════
+//  ITEM DEFINITIONS
+// ═══════════════════════════════════════════════════════
+const FRUITS = [
+    { emoji:'🍉', pts:10, color:'#ff4d6d' },
+    { emoji:'🍎', pts:10, color:'#ff3b3b' },
+    { emoji:'🍊', pts:10, color:'#ff8800' },
+    { emoji:'🍋', pts:10, color:'#ffe600' },
+    { emoji:'🍇', pts:10, color:'#8b00ff' },
+    { emoji:'🍓', pts:10, color:'#ff2055' },
+    { emoji:'🥝', pts:10, color:'#7dce1a' },
+    { emoji:'🍑', pts:10, color:'#ff9a76' },
+    { emoji:'🫐', pts:10, color:'#4a2ee8' },
+    { emoji:'🥭', pts:10, color:'#ffb300' },
+];
+const BOMB = { emoji:'💣', pts:-10, color:'#333', isBomb:true };
+
+function randomFruit() {
+    return FRUITS[Math.floor(Math.random() * FRUITS.length)];
+}
+
+// ═══════════════════════════════════════════════════════
+//  SPAWN ITEM
+// ═══════════════════════════════════════════════════════
+function spawnItem() {
+    if (!state.running) return;
+    const W = gameCanvas.width, H = gameCanvas.height;
+    const isBomb = Math.random() < 0.18; // 18% bomb chance
+    const def = isBomb ? BOMB : randomFruit();
+    const size = Math.random() * 30 + 55; // 55–85px radius
+
+    // Launch from bottom, random X
+    const x = Math.random() * (W * 0.8) + W * 0.1;
+    const y = H + size;
+
+    // Upward velocity with slight horizontal drift
+    const vy = -(Math.random() * 8 + 12); // -12 to -20
+    const vx = (Math.random() - 0.5) * 5;
+    const spin = (Math.random() - 0.5) * 0.08; // rotation speed
+    const gravity = 0.22;
+
+    state.items.push({
+        ...def, x, y, vx, vy, spin, gravity,
+        size, rotation: 0, sliced: false, sliceAnim: 0,
+        sliceOffsetX: 0, sliceOffsetY: 0,
+        halfVx: (Math.random()-0.5)*6,
+        halfVy: -Math.random()*4,
+        halfRot: (Math.random()-0.5)*0.2,
+        opacity: 1,
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW HELPERS
+// ═══════════════════════════════════════════════════════
+function drawEmoji(ctx, emoji, x, y, size, rotation, opacity=1, clip=null) {
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.font = `${size}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (clip) {
+        ctx.beginPath();
+        if (clip === 'top') ctx.rect(-size, -size, size*2, size);
+        if (clip === 'bottom') ctx.rect(-size, 0, size*2, size);
+        ctx.clip();
+    }
+    ctx.fillText(emoji, 0, 0);
+    ctx.restore();
+}
+
+function drawSliceLine(ctx, x, y, rotation, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.8, 0);
+    ctx.lineTo(size * 0.8, 0);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Splash particles for sliced fruit
+function spawnJuice(x, y, color) {
+    for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist  = Math.random() * 90 + 30;
+        const el = document.createElement('div');
+        el.style.cssText = `
+            position:fixed; left:${x}px; top:${y}px;
+            width:${Math.random()*10+5}px; height:${Math.random()*10+5}px;
+            background:${color}; border-radius:50%;
+            pointer-events:none; z-index:50;
+            animation: splashDrop 0.6s ease-out forwards;
+            --tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px;
+            box-shadow: 0 0 8px ${color};
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 700);
+    }
+}
+
+// Injects juice animation style once
+(function injectJuiceStyle() {
+    const st = document.createElement('style');
+    st.textContent = `
+        @keyframes splashDrop {
+            0% { transform:translate(0,0) scale(1); opacity:1; }
+            100% { transform:translate(var(--tx), calc(var(--ty)+60px)) scale(0); opacity:0; }
+        }
+    `;
+    document.head.appendChild(st);
+})();
+
+// ═══════════════════════════════════════════════════════
+//  SCORE POPUP
+// ═══════════════════════════════════════════════════════
+function showScorePopup(x, y, text, color='#39ff14') {
+    const el = document.createElement('div');
+    el.className = 'score-popup';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    el.style.color = color;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+}
+
+// ═══════════════════════════════════════════════════════
+//  COMBO
+// ═══════════════════════════════════════════════════════
+function incrementCombo() {
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    comboEl.textContent = `x${state.combo}`;
+    comboEl.style.textShadow = `0 0 ${state.combo * 4}px var(--neon-yellow)`;
+
+    if (state.combo >= 3) {
+        comboBanner.textContent = `🔥 ${state.combo}x 連擊！`;
+        comboBanner.classList.add('show');
+        setTimeout(() => comboBanner.classList.remove('show'), 900);
+    }
+
+    clearTimeout(state.comboTimer);
+    state.comboTimer = setTimeout(resetCombo, 2000);
+}
+
+function resetCombo() {
+    state.combo = 1;
+    comboEl.textContent = 'x1';
+    comboEl.style.textShadow = '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  LIVES
+// ═══════════════════════════════════════════════════════
+function updateLivesUI() {
+    livesEl.textContent = `${state.bombsHit} / 3`;
+    if (state.bombsHit === 1) livesEl.style.color = '#ffb300';
+    else if (state.bombsHit === 2) livesEl.style.color = '#ff4444';
+    else livesEl.style.color = '';
+}
+
+function loseLife() {
+    state.lives--;
+    updateLivesUI();
+    // Screen flash red
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+        position:fixed;inset:0;background:rgba(255,0,0,0.35);
+        z-index:180;pointer-events:none;
+        animation:fadeOutFlash 0.5s forwards;
+    `;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 500);
+
+    if (!document.querySelector('style#flash-style')) {
+        const s = document.createElement('style');
+        s.id = 'flash-style';
+        s.textContent = `@keyframes fadeOutFlash { to { opacity:0; } }`;
+        document.head.appendChild(s);
+    }
+
+    if (state.lives <= 0) endGame();
+    resetCombo();
+}
+
+// ═══════════════════════════════════════════════════════
+//  COLLISION: hand vs item
+// ═══════════════════════════════════════════════════════
+function checkCollisions() {
+    if (!state.handVisible) return;
+
+    const hx = state.handX * gameCanvas.width;
+    const hy = state.handY * gameCanvas.height;
+    const phx = state.prevHandX * gameCanvas.width;
+    const phy = state.prevHandY * gameCanvas.height;
+
+    // Velocity magnitude for "swipe" detection
+    const dx = hx - phx, dy = hy - phy;
+    const speed = Math.sqrt(dx*dx + dy*dy);
+
+    state.items.forEach(item => {
+        if (item.sliced || item.opacity <= 0) return;
+        const dist = Math.hypot(hx - item.x, hy - item.y);
+
+        if (dist < item.size * 0.75) {
+            if (item.isBomb) {
+                // ── Bomb hit ──
+                item.sliced = true;
+                item.opacity = 0;
+                state.score = Math.max(0, state.score + item.pts); // -10
+                scoreEl.textContent = state.score;
+                state.bombsHit++;
+                state.fruitStreak = 0; // 中斷連續切水果
+                updateLivesUI();
+
+                const remaining = 3 - state.bombsHit;
+                if (remaining <= 0) {
+                    showScorePopup(item.x, item.y, '💣 爆炸！遊戲結束', '#ff2222');
+                    playSound('bomb');
+                    setTimeout(() => endGame(), 600);
+                } else {
+                    showScorePopup(item.x, item.y, `💥 -10  還剩 ${remaining} 次`, '#ff4444');
+                    playSound('bomb');
+                    resetCombo();
+                }
+
+                // 紅色閃屏
+                const flash = document.createElement('div');
+                flash.style.cssText = `
+                    position:fixed;inset:0;background:rgba(255,0,0,0.35);
+                    z-index:180;pointer-events:none;
+                    animation:fadeOutFlash 0.5s forwards;
+                `;
+                document.body.appendChild(flash);
+                setTimeout(() => flash.remove(), 500);
+
+            } else {
+                // ── Fruit sliced ──
+                item.sliced = true;
+                item.sliceAngle = Math.atan2(dy, dx);
+                item.sliceAnim = 1;
+                item.half1 = { x: item.x, y: item.y, vy: item.vy - 2, vx: item.vx - 3, rot: item.rotation, rotV: -0.1 };
+                item.half2 = { x: item.x, y: item.y, vy: item.vy - 2, vx: item.vx + 3, rot: item.rotation, rotV:  0.1 };
+
+                state.fruitStreak++;
+                let earned = item.pts; // 基礎 10 分
+                let bonusText = '';
+                if (state.fruitStreak >= 2) {
+                    earned += 5;       // 連續切：額外 +5
+                    bonusText = ' 🔥+5';
+                }
+                state.score += earned;
+                scoreEl.textContent = state.score;
+                showScorePopup(item.x, item.y - 20, `+${earned}${bonusText}`, state.fruitStreak >= 2 ? '#ffe600' : '#39ff14');
+                spawnJuice(item.x, item.y, item.color);
+                playSound('slice');
+                incrementCombo();
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════════════════════
+function playSound(type) {
+    try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
+        const t = ctx.currentTime;
+
+        if (type === 'slice') {
+            // ── 切水果：咻─啪 三層合成 ──
+
+            // 層1：高頻「咻」刀風聲（bandpass 白噪衰減）
+            const noiseLen = ctx.sampleRate * 0.09;
+            const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+            const nData = nBuf.getChannelData(0);
+            for (let i = 0; i < noiseLen; i++)
+                nData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseLen, 2.5);
+            const nSrc = ctx.createBufferSource();
+            nSrc.buffer = nBuf;
+            const nFilter = ctx.createBiquadFilter();
+            nFilter.type = 'bandpass';
+            nFilter.frequency.value = 3800;
+            nFilter.Q.value = 0.7;
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.4, t);
+            nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+            nSrc.connect(nFilter); nFilter.connect(nGain); nGain.connect(ctx.destination);
+            nSrc.start(t);
+
+            // 層2：中頻「啪」撞擊（快速衰減低通噪音）
+            const impLen = ctx.sampleRate * 0.055;
+            const iBuf = ctx.createBuffer(1, impLen, ctx.sampleRate);
+            const iData = iBuf.getChannelData(0);
+            for (let i = 0; i < impLen; i++)
+                iData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.007));
+            const iSrc = ctx.createBufferSource();
+            iSrc.buffer = iBuf;
+            const iFilter = ctx.createBiquadFilter();
+            iFilter.type = 'lowpass';
+            iFilter.frequency.value = 1400;
+            const iGain = ctx.createGain();
+            iGain.gain.setValueAtTime(0.55, t + 0.018);
+            iGain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+            iSrc.connect(iFilter); iFilter.connect(iGain); iGain.connect(ctx.destination);
+            iSrc.start(t + 0.018);
+
+            // 層3：清脆「叮」短音（模擬刀刃振動）
+            const dOsc = ctx.createOscillator();
+            dOsc.type = 'sine';
+            dOsc.frequency.setValueAtTime(2200, t + 0.02);
+            dOsc.frequency.exponentialRampToValueAtTime(950, t + 0.07);
+            const dGain = ctx.createGain();
+            dGain.gain.setValueAtTime(0.09, t + 0.02);
+            dGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+            dOsc.connect(dGain); dGain.connect(ctx.destination);
+            dOsc.start(t + 0.02); dOsc.stop(t + 0.07);
+
+        } else if (type === 'bomb') {
+            // ── 炸彈：轟─蹦 四層合成 ──
+
+            // 層1：低頻「轟」爆炸體感（sub bass thud）
+            const subOsc = ctx.createOscillator();
+            subOsc.type = 'sine';
+            subOsc.frequency.setValueAtTime(110, t);
+            subOsc.frequency.exponentialRampToValueAtTime(22, t + 0.45);
+            const subGain = ctx.createGain();
+            subGain.gain.setValueAtTime(1.0, t);
+            subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            subOsc.connect(subGain); subGain.connect(ctx.destination);
+            subOsc.start(t); subOsc.stop(t + 0.45);
+
+            // 層2：中頻「爆裂」主體噪音
+            const bLen = ctx.sampleRate * 0.55;
+            const bBuf = ctx.createBuffer(1, bLen, ctx.sampleRate);
+            const bData = bBuf.getChannelData(0);
+            for (let i = 0; i < bLen; i++)
+                bData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.065));
+            const bSrc = ctx.createBufferSource();
+            bSrc.buffer = bBuf;
+            const bFilter = ctx.createBiquadFilter();
+            bFilter.type = 'lowpass';
+            bFilter.frequency.value = 700;
+            const bGain = ctx.createGain();
+            bGain.gain.setValueAtTime(1.3, t);
+            bGain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+            bSrc.connect(bFilter); bFilter.connect(bGain); bGain.connect(ctx.destination);
+            bSrc.start(t);
+
+            // 層3：高頻「蹦」碎裂衝擊（sharp transient crack）
+            const cLen = ctx.sampleRate * 0.07;
+            const cBuf = ctx.createBuffer(1, cLen, ctx.sampleRate);
+            const cData = cBuf.getChannelData(0);
+            for (let i = 0; i < cLen; i++)
+                cData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cLen, 3);
+            const cSrc = ctx.createBufferSource();
+            cSrc.buffer = cBuf;
+            const cFilter = ctx.createBiquadFilter();
+            cFilter.type = 'highpass';
+            cFilter.frequency.value = 2200;
+            const cGain = ctx.createGain();
+            cGain.gain.setValueAtTime(0.7, t);
+            cGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+            cSrc.connect(cFilter); cFilter.connect(cGain); cGain.connect(ctx.destination);
+            cSrc.start(t);
+
+            // 層4：低頻「嗡嗡」鋸齒餘震
+            const rOsc = ctx.createOscillator();
+            rOsc.type = 'sawtooth';
+            rOsc.frequency.setValueAtTime(55, t + 0.05);
+            rOsc.frequency.exponentialRampToValueAtTime(28, t + 0.42);
+            const rFilter = ctx.createBiquadFilter();
+            rFilter.type = 'lowpass';
+            rFilter.frequency.value = 180;
+            const rGain = ctx.createGain();
+            rGain.gain.setValueAtTime(0.18, t + 0.05);
+            rGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+            rOsc.connect(rFilter); rFilter.connect(rGain); rGain.connect(ctx.destination);
+            rOsc.start(t + 0.05); rOsc.stop(t + 0.42);
+        }
+    } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════
+function gameLoop() {
+    if (!state.running) return;
+    const W = gameCanvas.width, H = gameCanvas.height;
+
+    // ── Update items ──
+    state.items = state.items.filter(item => {
+        item.vy += item.gravity;
+        item.x += item.vx;
+        item.y += item.vy;
+        item.rotation += item.spin;
+
+        // Remove if below screen or fully transparent
+        if (item.y > H + 200 || item.opacity <= 0) {
+            // Dropped fruit (not sliced, not bomb) → lose life
+            if (!item.sliced && !item.isBomb) {
+                // Only penalise once it actually falls off
+                loseLife();
+            }
+            return false;
+        }
+        return true;
+    });
+
+    // ── Draw ──
+    gCtx.clearRect(0, 0, W, H);
+
+    state.items.forEach(item => {
+        if (item.sliced) {
+            // Animate two halves
+            if (item.half1) {
+                item.half1.x += item.half1.vx;
+                item.half1.y += item.half1.vy;
+                item.half1.vy += 0.3;
+                item.half1.rot += item.half1.rotV;
+                item.opacity -= 0.03;
+                drawEmoji(gCtx, item.emoji, item.half1.x, item.half1.y, item.size, item.half1.rot, item.opacity, 'top');
+                drawEmoji(gCtx, item.emoji, item.half2.x, item.half2.y, item.half2.rot, item.half2.rot, item.opacity, 'bottom');
+                item.half2.x += item.half2.vx;
+                item.half2.y += item.half2.vy;
+                item.half2.vy += 0.3;
+                item.half2.rot += item.half2.rotV;
+                // Draw slice line
+                drawSliceLine(gCtx, item.x, item.y, item.sliceAngle || 0, item.size);
+            }
+        } else {
+            drawEmoji(gCtx, item.emoji, item.x, item.y, item.size, item.rotation);
+
+            // Bomb glow
+            if (item.isBomb) {
+                gCtx.save();
+                gCtx.shadowBlur = 20 + Math.sin(Date.now() * 0.01) * 10;
+                gCtx.shadowColor = '#ff4400';
+                gCtx.font = `${item.size * 0.3}px sans-serif`;
+                gCtx.textAlign = 'center';
+                gCtx.textBaseline = 'middle';
+                gCtx.fillText('💥', item.x + item.size * 0.3, item.y - item.size * 0.3);
+                gCtx.restore();
+            }
+        }
+    });
+
+    // Check collisions
+    checkCollisions();
+
+    // ── Blade trail ──
+    const now = Date.now();
+    if (state.handVisible) {
+        state.bladeTrail.push({ x: state.handX * W, y: state.handY * H, t: now });
+    }
+    state.bladeTrail = state.bladeTrail.filter(p => now - p.t < 180);
+
+    bCtx.clearRect(0, 0, W, H);
+    if (state.bladeTrail.length > 2) {
+        bCtx.save();
+        bCtx.lineCap = 'round';
+        bCtx.lineJoin = 'round';
+        for (let i = 1; i < state.bladeTrail.length; i++) {
+            const p0 = state.bladeTrail[i-1], p1 = state.bladeTrail[i];
+            const age = (now - p1.t) / 180;
+            const alpha = (1 - age) * 0.9;
+            const width = (1 - age) * 8 + 1;
+            const grad = bCtx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+            grad.addColorStop(0, `rgba(255,255,255,${alpha * 0.4})`);
+            grad.addColorStop(0.5, `rgba(180,120,255,${alpha})`);
+            grad.addColorStop(1, `rgba(255,60,120,${alpha * 0.6})`);
+            bCtx.beginPath();
+            bCtx.lineWidth = width;
+            bCtx.strokeStyle = grad;
+            bCtx.moveTo(p0.x, p0.y);
+            bCtx.lineTo(p1.x, p1.y);
+            bCtx.stroke();
+        }
+        // Glow tip
+        if (state.bladeTrail.length > 0) {
+            const tip = state.bladeTrail[state.bladeTrail.length - 1];
+            bCtx.beginPath();
+            const glowGrad = bCtx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 18);
+            glowGrad.addColorStop(0, 'rgba(255,255,255,0.9)');
+            glowGrad.addColorStop(0.4, 'rgba(200,100,255,0.5)');
+            glowGrad.addColorStop(1, 'rgba(255,60,120,0)');
+            bCtx.fillStyle = glowGrad;
+            bCtx.arc(tip.x, tip.y, 18, 0, Math.PI * 2);
+            bCtx.fill();
+        }
+        bCtx.restore();
+    }
+
+    // Store prev hand position
+    state.prevHandX = state.handX;
+    state.prevHandY = state.handY;
+
+    state.frameId = requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════
+//  MEDIAPIPE HANDS SETUP
+// ═══════════════════════════════════════════════════════
+let hands = null;
+let camera = null;
+
+function setupMediaPipe() {
+    hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.6,
+    });
+
+    hands.onResults(onHandResults);
+
+    camera = new Camera(video, {
+        onFrame: async () => {
+            if (hands) await hands.send({ image: video });
+        },
+        width: 640,
+        height: 480,
+    });
+
+    camera.start().then(() => {
+        camStatus.textContent = '✅ 鏡頭已啟動';
+        setTimeout(() => camStatus.classList.add('hidden'), 2000);
+    }).catch(err => {
+        camStatus.textContent = '❌ 無法開啟鏡頭：' + err.message;
+        console.error(err);
+    });
+}
+
+// ── Process hand landmarks ──
+function onHandResults(results) {
+    // Draw skeleton
+    const W = skeletonCanvas.width, H = skeletonCanvas.height;
+    sCtx.clearRect(0, 0, W, H);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        state.handVisible = true;
+        const lm = results.multiHandLandmarks[0];
+
+        // Use index finger tip (landmark 8) as blade tip
+        // Mirror X because video is mirrored
+        const tip = lm[8];
+        state.handX = 1 - tip.x; // mirror
+        state.handY = tip.y;
+
+        // Draw skeleton overlay
+        drawSkeleton(sCtx, lm, W, H);
+    } else {
+        state.handVisible = false;
+        state.handX = -1;
+        state.handY = -1;
+    }
+}
+
+// ── Skeleton drawing ──
+const HAND_CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],       // thumb
+    [0,5],[5,6],[6,7],[7,8],       // index
+    [0,9],[9,10],[10,11],[11,12],  // middle
+    [0,13],[13,14],[14,15],[15,16],// ring
+    [0,17],[17,18],[18,19],[19,20],// pinky
+    [5,9],[9,13],[13,17],          // palm
+];
+
+function drawSkeleton(ctx, lm, W, H) {
+    ctx.save();
+    // Connections
+    ctx.strokeStyle = 'rgba(167,139,250,0.6)';
+    ctx.lineWidth = 2;
+    HAND_CONNECTIONS.forEach(([a, b]) => {
+        const p1 = lm[a], p2 = lm[b];
+        ctx.beginPath();
+        ctx.moveTo((1 - p1.x) * W, p1.y * H);
+        ctx.lineTo((1 - p2.x) * W, p2.y * H);
+        ctx.stroke();
+    });
+    // Joints
+    lm.forEach((p, i) => {
+        const x = (1 - p.x) * W, y = p.y * H;
+        ctx.beginPath();
+        ctx.arc(x, y, i === 8 ? 7 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = i === 8
+            ? 'rgba(255,255,255,0.95)'
+            : 'rgba(200,150,255,0.7)';
+        ctx.fill();
+    });
+    ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  START / END GAME
+// ═══════════════════════════════════════════════════════
+function startGame() {
+    state.running     = true;
+    state.score       = 0;
+    state.lives       = 3;
+    state.combo       = 1;
+    state.maxCombo    = 1;
+    state.bombsHit    = 0;
+    state.fruitStreak = 0;
+    state.items       = [];
+    state.bladeTrail  = [];
+
+    scoreEl.textContent = '0';
+    comboEl.textContent = 'x1';
+    livesEl.style.color = '';
+    updateLivesUI();
+
+    startScreen.style.display = 'none';
+    gameoverScreen.classList.remove('show');
+
+    // Spawn items on interval
+    state.spawnTimer = setInterval(() => {
+        // Spawn 1–2 items
+        spawnItem();
+        if (Math.random() < 0.35) spawnItem();
+    }, 1100);
+
+    gameLoop();
+}
+
+function endGame() {
+    state.running = false;
+    cancelAnimationFrame(state.frameId);
+    clearInterval(state.spawnTimer);
+    clearTimeout(state.comboTimer);
+
+    finalScoreEl.textContent = state.score;
+    finalComboEl.textContent = state.maxCombo;
+    gameoverScreen.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUTTON EVENTS
+// ═══════════════════════════════════════════════════════
+document.getElementById('start-btn').addEventListener('click', () => {
+    setupMediaPipe();
+    startGame();
+});
+
+document.getElementById('play-again-btn').addEventListener('click', () => {
+    state.items = [];
+    gCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+    bCtx.clearRect(0, 0, bladeCanvas.width, bladeCanvas.height);
+    startGame();
+});
+
+// ── Mouse/touch fallback (for testing without camera) ──
+let mouseDown = false;
+gameCanvas.addEventListener('mousemove', (e) => {
+    if (!state.running) return;
+    state.prevHandX = state.handX;
+    state.prevHandY = state.handY;
+    state.handX = e.clientX / gameCanvas.width;
+    state.handY = e.clientY / gameCanvas.height;
+    state.handVisible = true;
+});
+gameCanvas.addEventListener('mouseleave', () => { state.handVisible = false; });
+
+gameCanvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!state.running) return;
+    const t = e.touches[0];
+    state.prevHandX = state.handX;
+    state.prevHandY = state.handY;
+    state.handX = t.clientX / gameCanvas.width;
+    state.handY = t.clientY / gameCanvas.height;
+    state.handVisible = true;
+}, { passive: false });
+gameCanvas.addEventListener('touchend', () => { state.handVisible = false; });
+</script>
+</body>
+</html>
